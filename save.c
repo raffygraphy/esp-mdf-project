@@ -65,6 +65,7 @@ static void root_task(void *arg)
         MDF_LOGI("Root receive, addr: " MACSTR ", size: %d, data: %s", MAC2STR(src_addr), size, data);
 
         (strcmp(data, "On") == 0) ? gpio_set_level(GPIO_OUTPUT_IO_2, 1) : gpio_set_level(GPIO_OUTPUT_IO_2, 0);
+        
 
         size = sprintf(data, "(%d) Hello node!", i);
         ret = mwifi_root_write(src_addr, 1, &data_type, data, size, true);

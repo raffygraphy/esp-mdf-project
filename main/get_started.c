@@ -20,7 +20,23 @@
 #define GPIO_INPUT_PIN_SEL  (1ULL<<GPIO_INPUT_IO_15)
 
 #define GPIO_OUTPUT_IO_2    2
-#define GPIO_OUTPUT_PIN_SEL  (1ULL<<GPIO_OUTPUT_IO_2)
+#define GPIO_OUTPUT_PIN_SEL_2  (1ULL<<GPIO_OUTPUT_IO_2)
+
+
+#define MACSTR_LEN 18 
+
+#define GPIO_OUTPUT_IO_12    12
+#define GPIO_OUTPUT_PIN_SEL_12  (1ULL<<GPIO_OUTPUT_IO_12)
+
+#define GPIO_OUTPUT_IO_4    4
+#define GPIO_OUTPUT_PIN_SEL_4  (1ULL<<GPIO_OUTPUT_IO_4)
+
+
+#define GPIO_OUTPUT_IO_14    14
+#define GPIO_OUTPUT_PIN_SEL_14  (1ULL<<GPIO_OUTPUT_IO_14)
+
+#define GPIO_OUTPUT_IO_16    16
+#define GPIO_OUTPUT_PIN_SEL_16  (1ULL<<GPIO_OUTPUT_IO_16)
 
 
 
@@ -33,19 +49,6 @@ static void read_gpio(int *value)
     *value = gpio_get_level(GPIO_INPUT_IO_15);
 }
 
-static void print_connected_nodes() {
-    mesh_addr_t parent_bssid = {0};
-    esp_mesh_get_parent_bssid(&parent_bssid);
-    
-    MDF_LOGI("Connected Child Nodes:");
-    wifi_sta_list_t wifi_sta_list = {0x0};
-    esp_wifi_ap_get_sta_list(&wifi_sta_list);
-    for (int i = 0; i < wifi_sta_list.num; i++) {
-        MDF_LOGI("Child mac: " MACSTR, MAC2STR(wifi_sta_list.sta[i].mac));
-    }
-}
-
-
 static void root_task(void *arg)
 {
     mdf_err_t ret                    = MDF_OK;
@@ -54,20 +57,58 @@ static void root_task(void *arg)
     uint8_t src_addr[MWIFI_ADDR_LEN] = {0x0};
     mwifi_data_type_t data_type      = {0};
 
+
+    char connected_node_str[MACSTR_LEN];
+
+
+
     MDF_LOGI("Root is running");
 
     gpio_config_t io_conf_output;
     io_conf_output.intr_type = GPIO_PIN_INTR_DISABLE;
     io_conf_output.mode = GPIO_MODE_OUTPUT;
-    io_conf_output.pin_bit_mask = GPIO_OUTPUT_PIN_SEL;
+    io_conf_output.pin_bit_mask = GPIO_OUTPUT_PIN_SEL_2;
     io_conf_output.pull_up_en = 0;
     io_conf_output.pull_down_en = 0;
     gpio_config(&io_conf_output);
 
+    gpio_config_t io_conf_output12;
+    io_conf_output12.intr_type = GPIO_PIN_INTR_DISABLE;
+    io_conf_output12.mode = GPIO_MODE_OUTPUT;
+    io_conf_output12.pin_bit_mask = GPIO_OUTPUT_PIN_SEL_12;
+    io_conf_output12.pull_up_en = 0;
+    io_conf_output12.pull_down_en = 0;
+    gpio_config(&io_conf_output12);
+
+    gpio_config_t io_conf_output4;
+    io_conf_output4.intr_type = GPIO_PIN_INTR_DISABLE;
+    io_conf_output4.mode = GPIO_MODE_OUTPUT;
+    io_conf_output4.pin_bit_mask = GPIO_OUTPUT_PIN_SEL_4;
+    io_conf_output4.pull_up_en = 0;
+    io_conf_output4.pull_down_en = 0;
+    gpio_config(&io_conf_output4);
+
+    gpio_config_t io_conf_output14;
+    io_conf_output14.intr_type = GPIO_PIN_INTR_DISABLE;
+    io_conf_output14.mode = GPIO_MODE_OUTPUT;
+    io_conf_output14.pin_bit_mask = GPIO_OUTPUT_PIN_SEL_14;
+    io_conf_output14.pull_up_en = 0;
+    io_conf_output14.pull_down_en = 0;
+    gpio_config(&io_conf_output14);
+    
+    
+    gpio_config_t io_conf_output16;
+    io_conf_output16.intr_type = GPIO_PIN_INTR_DISABLE;
+    io_conf_output16.mode = GPIO_MODE_OUTPUT;
+    io_conf_output16.pin_bit_mask = GPIO_OUTPUT_PIN_SEL_16;
+    io_conf_output16.pull_up_en = 0;
+    io_conf_output16.pull_down_en = 0;
+    gpio_config(&io_conf_output16);
+
 
     for (int i = 0;; ++i) {
         if (!mwifi_is_started()) {
-            vTaskDelay(5 / portTICK_RATE_MS);
+            vTaskDelay(500 / portTICK_RATE_MS);
             continue;
         }
 
@@ -77,14 +118,46 @@ static void root_task(void *arg)
         MDF_ERROR_CONTINUE(ret != MDF_OK, "<%s> mwifi_root_read", mdf_err_to_name(ret));
         MDF_LOGI("Root receive, addr: " MACSTR ", size: %d, data: %s", MAC2STR(src_addr), size, data);
 
-        (strcmp(data, "On") == 0) ? gpio_set_level(GPIO_OUTPUT_IO_2, 1) : gpio_set_level(GPIO_OUTPUT_IO_2, 0);
+
+        (strcmp(data, "On") == 0) ? gpio_set_level(GPIO_OUTPUT_IO_4, 1) : gpio_set_level(GPIO_OUTPUT_IO_4, 0);
+        (strcmp(data, "On") == 0) ? gpio_set_level(GPIO_OUTPUT_IO_16, 1) : gpio_set_level(GPIO_OUTPUT_IO_16, 0);
+
+        
 
         size = sprintf(data, "(%d) Hello node!", i);
         ret = mwifi_root_write(src_addr, 1, &data_type, data, size, true);
         MDF_ERROR_CONTINUE(ret != MDF_OK, "mwifi_root_recv, ret: %x", ret);
         MDF_LOGI("Root send, addr: " MACSTR ", size: %d, data: %s", MAC2STR(src_addr), size, data);
-    
-        print_connected_nodes();
+
+        mesh_addr_t parent_bssid = {0};
+        esp_mesh_get_parent_bssid(&parent_bssid);
+        
+        MDF_LOGI("Connected Child Nodes HELLO THIS IS ME CONNECTED:");
+        snprintf(connected_node_str, sizeof(connected_node_str), MACSTR, MAC2STR(src_addr));
+        MDF_LOGI("%s", connected_node_str);
+
+
+        if (strcmp(connected_node_str, "a4:cf:12:75:01:f4") == 0) {
+            MDF_LOGI("CHILD 1 Connected");
+            gpio_set_level(GPIO_OUTPUT_IO_12, 1);
+
+        } else {
+            MDF_LOGI("CHILD 1 Not Connected");
+            gpio_set_level(GPIO_OUTPUT_IO_12, 0);
+        }
+
+        if (strcmp(connected_node_str, "24:6f:28:ab:1d:d4") == 0) {
+            MDF_LOGI("CHILD 2 Connected");
+            gpio_set_level(GPIO_OUTPUT_IO_14, 1);
+
+        } else {
+            MDF_LOGI("CHILD 2 Not Connected");
+            gpio_set_level(GPIO_OUTPUT_IO_14, 0);
+        }
+
+        // MDF_LOGI(MACSTR, MAC2STR(src_addr));
+        wifi_sta_list_t wifi_sta_list = {0x0};
+        esp_wifi_ap_get_sta_list(&wifi_sta_list);
     }
 
     MDF_LOGW("Root is exit");
@@ -116,7 +189,7 @@ static void node_read_task(void *arg)
 
     for (;;) {
         if (!mwifi_is_connected()) {
-            vTaskDelay(5 / portTICK_RATE_MS);
+            vTaskDelay(500 / portTICK_RATE_MS);
             continue;
         }
 
@@ -137,7 +210,7 @@ static void node_read_task(void *arg)
         ret = mwifi_write(NULL, &data_type, data, size, true);
         MDF_ERROR_CONTINUE(ret != MDF_OK, "mwifi_write, ret: %x", ret);
 
-        vTaskDelay(5 / portTICK_RATE_MS);
+        vTaskDelay(1000 / portTICK_RATE_MS);
     }
 
     MDF_LOGW("Note read task is exit");
@@ -158,7 +231,7 @@ void node_write_task(void *arg)
 
     for (;;) {
         if (!mwifi_is_connected()) {
-            vTaskDelay(5 / portTICK_RATE_MS);
+            vTaskDelay(500 / portTICK_RATE_MS);
             continue;
         }
 
@@ -166,7 +239,7 @@ void node_write_task(void *arg)
         ret = mwifi_write(NULL, &data_type, data, size, true);
         MDF_ERROR_CONTINUE(ret != MDF_OK, "mwifi_write, ret: %x", ret);
 
-        vTaskDelay(5 / portTICK_RATE_MS);
+        vTaskDelay(1000 / portTICK_RATE_MS);
     }
 
     MDF_LOGW("Node write task is exit");

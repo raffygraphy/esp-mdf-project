@@ -1,7 +1,7 @@
 {
     "version":            "1",
     "project_name":       "get_started",
-    "project_version":    "v1.0-160-g354d0bf-dirty",
+    "project_version":    "48f020d-dirty",
     "project_path":       "D:/ESP-MDF/esp-mdf/examples/get-started",
     "idf_path":           "C:/Users/alraf/esp32/esp-idf",
     "build_dir":          "D:/ESP-MDF/esp-mdf/examples/get-started/build",
