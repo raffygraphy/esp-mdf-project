@@ -57,10 +57,7 @@ static void root_task(void *arg)
     uint8_t src_addr[MWIFI_ADDR_LEN] = {0x0};
     mwifi_data_type_t data_type      = {0};
 
-
     char connected_node_str[MACSTR_LEN];
-
-
 
     MDF_LOGI("Root is running");
 
@@ -108,20 +105,30 @@ static void root_task(void *arg)
 
     for (int i = 0;; ++i) {
         if (!mwifi_is_started()) {
-            vTaskDelay(500 / portTICK_RATE_MS);
+            MDF_LOGI("No node connected, setting all GPIO to 0");
+
+            // Set all GPIO to 0
+            gpio_set_level(GPIO_OUTPUT_IO_2, 0);
+            gpio_set_level(GPIO_OUTPUT_IO_12, 0);
+            gpio_set_level(GPIO_OUTPUT_IO_4, 0);
+            gpio_set_level(GPIO_OUTPUT_IO_14, 0);
+            gpio_set_level(GPIO_OUTPUT_IO_16, 0);
             continue;
         }
 
         size = MWIFI_PAYLOAD_LEN;
         memset(data, 0, MWIFI_PAYLOAD_LEN);
-        ret = mwifi_root_read(src_addr, &data_type, data, &size, portMAX_DELAY);
+        ret = mwifi_root_read(src_addr, &data_type, data, &size, 0);
         MDF_ERROR_CONTINUE(ret != MDF_OK, "<%s> mwifi_root_read", mdf_err_to_name(ret));
         MDF_LOGI("Root receive, addr: " MACSTR ", size: %d, data: %s", MAC2STR(src_addr), size, data);
 
 
-        (strcmp(data, "On") == 0) ? gpio_set_level(GPIO_OUTPUT_IO_4, 1) : gpio_set_level(GPIO_OUTPUT_IO_4, 0);
-        (strcmp(data, "On") == 0) ? gpio_set_level(GPIO_OUTPUT_IO_16, 1) : gpio_set_level(GPIO_OUTPUT_IO_16, 0);
-
+        char src_addr_str[18];
+        snprintf(src_addr_str, sizeof(src_addr_str), MACSTR, MAC2STR(src_addr));
+        if(strcmp(src_addr_str, "a4:cf:12:75:01:f4") == 0)
+            (strcmp(data, "On") == 0) ? gpio_set_level(GPIO_OUTPUT_IO_4, 1) : gpio_set_level(GPIO_OUTPUT_IO_4, 0);
+        if(strcmp(src_addr_str, "24:6f:28:ab:1d:d4") == 0) 
+            (strcmp(data, "On") == 0) ? gpio_set_level(GPIO_OUTPUT_IO_16, 1) : gpio_set_level(GPIO_OUTPUT_IO_16, 0);
         
 
         size = sprintf(data, "(%d) Hello node!", i);
@@ -189,7 +196,6 @@ static void node_read_task(void *arg)
 
     for (;;) {
         if (!mwifi_is_connected()) {
-            vTaskDelay(500 / portTICK_RATE_MS);
             continue;
         }
 
@@ -210,7 +216,6 @@ static void node_read_task(void *arg)
         ret = mwifi_write(NULL, &data_type, data, size, true);
         MDF_ERROR_CONTINUE(ret != MDF_OK, "mwifi_write, ret: %x", ret);
 
-        vTaskDelay(1000 / portTICK_RATE_MS);
     }
 
     MDF_LOGW("Note read task is exit");
@@ -231,7 +236,6 @@ void node_write_task(void *arg)
 
     for (;;) {
         if (!mwifi_is_connected()) {
-            vTaskDelay(500 / portTICK_RATE_MS);
             continue;
         }
 
@@ -239,7 +243,6 @@ void node_write_task(void *arg)
         ret = mwifi_write(NULL, &data_type, data, size, true);
         MDF_ERROR_CONTINUE(ret != MDF_OK, "mwifi_write, ret: %x", ret);
 
-        vTaskDelay(1000 / portTICK_RATE_MS);
     }
 
     MDF_LOGW("Node write task is exit");
